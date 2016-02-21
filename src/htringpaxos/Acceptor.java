@@ -18,7 +18,6 @@ package htringpaxos;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.EOFException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -118,7 +117,7 @@ private boolean forwardingReq;
                                 send(r);
                                 reqs.clear();
                             }
-                        }catch(EOFException|ClassNotFoundException e){
+                        }catch(IOException|ClassNotFoundException e){
                             while(true){
                                 synchronized(this){
                                     try {
