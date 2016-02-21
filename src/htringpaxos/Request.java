@@ -22,7 +22,7 @@ import java.net.InetAddress;
  *
  * @author Vinitkumar
  */
-public class Request implements Serializable {
+public class Request implements Serializable{
     int reqNum,port;
     String str;
     InetAddress ip;

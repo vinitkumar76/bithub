@@ -18,15 +18,17 @@ package htringpaxos;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.logging.Level;
@@ -51,7 +53,7 @@ private boolean forwardingReq;
         try{
         this.s = s;
         in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
-        fileOut= new ObjectOutputStream(new FileOutputStream("RequestFile"));
+        
         inFromUser= new BufferedReader(new InputStreamReader(System.in));
         } catch(IOException e){
             System.out.println("Exception:"+e);
@@ -103,8 +105,9 @@ private boolean forwardingReq;
             Socket socket;
             socket = new Socket("localhost",5000);
             out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-            FileInputStream filestream=new FileInputStream("RequestFile");
-            fileIn=new ObjectInputStream(filestream);
+            InputStream inputstream = Files.newInputStream(Paths.get("RequestFile"),
+                    StandardOpenOption.READ);
+            fileIn=new ObjectInputStream(inputstream);
             while(true){
                 try{
                     while(true)
@@ -112,7 +115,7 @@ private boolean forwardingReq;
                         try{
                             req=(Request) fileIn.readObject();
                             reqs.add(req);
-                            if(reqs.size()>=5){
+                            if(reqs.size()>10){
                                 ArrayList r=(ArrayList) reqs.clone();
                                 send(r);
                                 reqs.clear();
@@ -121,12 +124,12 @@ private boolean forwardingReq;
                             while(true){
                                 synchronized(this){
                                     try {
-                                        this.wait(1000);
+                                        this.wait(100);
                                     } catch (InterruptedException ex) {
                                         Logger.getLogger(Acceptor.class.getName()).log(Level.SEVERE, null, ex);
                                     }
                                 }
-                                if(filestream.available()>10) break;
+                                if(inputstream.available()>10) break;
                             }
                         }
                     }
@@ -139,6 +142,8 @@ private boolean forwardingReq;
         }
     }
     private void receiveRequests()throws Exception {
+        fileOut= new ObjectOutputStream(Files.newOutputStream(Paths.get("RequestFile"),
+                StandardOpenOption.WRITE));
         while ( true ) {
             try {
                 requests = (ArrayList) in.readObject();
@@ -148,7 +153,9 @@ private boolean forwardingReq;
                     System.out.println(" [Request Number#"+request.reqNum+"]");
                     if ((request.ip)==null) request.ip=s.getInetAddress();
                     if ((request.port)==0) request.port=s.getPort();
-                    fileOut.writeObject(request);
+                    synchronized(this){
+                        fileOut.writeObject(request);
+                    }
                 }
             } catch (ClassNotFoundException | IOException ex) {
                 Logger.getLogger(Acceptor.class.getName()).log(Level.SEVERE, null, ex);
