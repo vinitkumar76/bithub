@@ -29,6 +29,13 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.logging.Level;
@@ -44,6 +51,7 @@ ObjectInputStream in,fileIn;
 ObjectOutputStream out,fileOut;
 BufferedReader inFromUser;
 private boolean forwardingReq;
+Clob clob;
     Acceptor() {
     }
     Acceptor(boolean forwardingReq) throws FileNotFoundException, IOException {
@@ -141,9 +149,17 @@ private boolean forwardingReq;
             Logger.getLogger(Acceptor.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    int row_count;
     private void receiveRequests()throws Exception {
-        fileOut= new ObjectOutputStream(Files.newOutputStream(Paths.get("RequestFile"),
-                StandardOpenOption.WRITE));
+        DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
+        final String URL;
+        Connection con;
+        Statement stm;
+        PreparedStatement psmt;
+        URL = "jdbc:oracle:thin:@localhost:1521:XE";
+        con = DriverManager.getConnection(URL, "vinit76","vkb1234");
+        stm=con.createStatement();
+        ResultSet rs1,rs2;
         while ( true ) {
             try {
                 requests = (ArrayList) in.readObject();
@@ -153,8 +169,27 @@ private boolean forwardingReq;
                     System.out.println(" [Request Number#"+request.reqNum+"]");
                     if ((request.ip)==null) request.ip=s.getInetAddress();
                     if ((request.port)==0) request.port=s.getPort();
+                    //Reading requests from database
                     synchronized(this){
-                        fileOut.writeObject(request);
+                        rs1=stm.executeQuery("SELECT * FROM VK");
+                        while(rs1.next()){
+                          System.out.println(rs1.getInt(1));
+                        }
+                        //reading total available requests in database
+                        rs2=stm.executeQuery("SELECT COUNT(*) FROM VK");
+                        while(rs2.next()){
+                            row_count=rs2.getInt(1);
+                            System.out.println(row_count);
+                        }
+                        //insert the requests into database
+                        try{
+                            psmt=con.prepareStatement("INSERT INTO VK VALUES(?,?)");
+                            psmt.setInt(1,row_count+1);
+                            psmt.setString(2,"Ayushi");
+                            psmt.executeUpdate();
+                        }catch(SQLException e){
+                          System.out.println(e);  
+                        }
                     }
                 }
             } catch (ClassNotFoundException | IOException ex) {
