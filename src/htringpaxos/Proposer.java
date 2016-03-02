@@ -21,25 +21,26 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.util.HashSet;
 /**
  *
  * @author Vinitkumar
  */
-public class Proposer {
+public class Proposer extends HTRingPaxos{
 Proposer() {
     }
 ObjectOutputStream out=null;
 public void runProposer() throws Exception {
     Socket s;
-    s = new Socket("localhost",5000);
+    int j=5000+a_num;
+    s = new Socket("localhost",j);
     out = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
     Request request;
     while(true)
         {    
             while (true) { 
                 try {
-                    ArrayList requests=new ArrayList();
+                    HashSet requests=new HashSet();
                     request=getRequest();
                     requests.add(request);
                     send(requests);
@@ -50,7 +51,7 @@ public void runProposer() throws Exception {
             }   
         }
     }
-private void send(ArrayList requests) throws IOException{
+private void send(HashSet requests) throws IOException{
     out.writeObject(requests);
     out.flush();
 }

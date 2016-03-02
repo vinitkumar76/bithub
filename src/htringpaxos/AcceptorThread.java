@@ -22,17 +22,23 @@ import java.util.logging.Logger;
  *
  * @author Vinitkumar
  */
-public class AcceptorThread implements Runnable{
-Acceptor a=new Acceptor();
+public class AcceptorThread extends HTRingPaxos implements Runnable{
 @Override
 public void run(){
     try {
+        synchronized (this){
+            while(a_num<0){
+              wait(2000);  
+            }
+        }
         boolean forwardingReq=true;
         Thread t=new Thread(new Acceptor(forwardingReq));
         t.setDaemon(true);
         t.start();
-        a.runAcceptor(); 
+        Acceptor a=new Acceptor();
+        a.runAcceptor();
     } catch (Exception ex) {
+        System.out.println("vinit2");   
         Logger.getLogger(AcceptorThread.class.getName()).log(Level.SEVERE, null, ex);
     }
 }    

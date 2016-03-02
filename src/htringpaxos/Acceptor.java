@@ -18,50 +18,35 @@ package htringpaxos;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 /**
  *
  * @author Vinitkumar
  */
-public class Acceptor implements Runnable {
-boolean leader=false;
-Socket s;
-ObjectInputStream in,fileIn;
-ObjectOutputStream out,fileOut;
-BufferedReader inFromUser;
-private boolean forwardingReq;
-Clob clob;
+    public class Acceptor extends HTRingPaxos implements Runnable {
+    boolean leader=false;
+    Socket s;
+    ObjectInputStream in;
+    ObjectOutputStream out;
+    BufferedReader inFromUser;
+    private boolean forwardingReq;
     Acceptor() {
     }
-    Acceptor(boolean forwardingReq) throws FileNotFoundException, IOException {
+    Acceptor(boolean forwardingReq) throws IOException {
             this.forwardingReq = forwardingReq;
     }
     Acceptor(Socket s) throws IOException {
         try{
         this.s = s;
         in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
-        
         inFromUser= new BufferedReader(new InputStreamReader(System.in));
         } catch(IOException e){
             System.out.println("Exception:"+e);
@@ -71,7 +56,9 @@ Clob clob;
      * @throws java.lang.Exception
      */
     public void runAcceptor() throws Exception {
-        ServerSocket ss = new ServerSocket (5000);
+        System.out.println("Vinit");
+        int i=5000+a_num;
+        ServerSocket ss = new ServerSocket (i);
         while(true) 
         { 
             Socket socket = ss.accept();
@@ -90,117 +77,94 @@ Clob clob;
     public void run(){
         //forwarding requests to other acceptors
         if(forwardingReq==true){
-            forwardRequests();
+            try {
+                forwardRequests();
+            } catch (SQLException | ClassNotFoundException | InterruptedException ex) {
+                System.out.println("Exception:"+ex);
+            }
         }
         //getting requests from proposers
         else{
             try {
                 receiveRequests();
                 } catch (Exception ex) {
-                Logger.getLogger(Acceptor.class.getName()).log(Level.SEVERE, null, ex);
+                System.out.println("Exception:"+ex);
                 }
             }
     }
-    ArrayList requests;
+    HashSet requests=new HashSet();
     Request request;
-    
-    
-    private void forwardRequests(){
+    private void forwardRequests() throws SQLException, ClassNotFoundException, InterruptedException{
         try {
             forwardingReq=false;
-            ArrayList reqs = new ArrayList();
-            Request req;
+            HashSet reqs;
             Socket socket;
-            socket = new Socket("localhost",5000);
-            out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-            InputStream inputstream = Files.newInputStream(Paths.get("RequestFile"),
-                    StandardOpenOption.READ);
-            fileIn=new ObjectInputStream(inputstream);
+            int next=5000+a_num;
             while(true){
-                try{
-                    while(true)
-                    {
-                        try{
-                            req=(Request) fileIn.readObject();
-                            reqs.add(req);
-                            if(reqs.size()>10){
-                                ArrayList r=(ArrayList) reqs.clone();
-                                send(r);
-                                reqs.clear();
+            try{    
+            socket = new Socket("localhost",next);
+            break;
+            }catch(Exception e){
+                next=(next+1)%4;
+            }
+            }
+            out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+            DatabaseHandeler dbh=new DatabaseHandeler();
+            while(true){
+                while(true)
+                {   
+                    try{
+                        if (dbh.countRequests()==0)
+                            try {
+                                waitForRequests();
+                            } catch (InterruptedException ex) {
+                                System.out.println("Exception:"+ex);
                             }
-                        }catch(IOException|ClassNotFoundException e){
-                            while(true){
-                                synchronized(this){
-                                    try {
-                                        this.wait(100);
-                                    } catch (InterruptedException ex) {
-                                        Logger.getLogger(Acceptor.class.getName()).log(Level.SEVERE, null, ex);
-                                    }
-                                }
-                                if(inputstream.available()>10) break;
+                        reqs=dbh.getRequests();
+                        sendRequests(reqs);
+                        try {
+                                waitForRequests();
+                            } catch (InterruptedException ex) {
+                                System.out.println("Exception:"+ex);
                             }
-                        }
+                    }catch(IOException e){
+                        System.out.println("Exception:"+e);
                     }
-                }catch(IOException e){
-                    System.out.println("Exception:"+e);
                 }
             }
         } catch (IOException ex) {
-            Logger.getLogger(Acceptor.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Exception:"+ex);
         }
     }
-    int row_count;
     private void receiveRequests()throws Exception {
-        DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
-        final String URL;
-        Connection con;
-        Statement stm;
-        PreparedStatement psmt;
-        URL = "jdbc:oracle:thin:@localhost:1521:XE";
-        con = DriverManager.getConnection(URL, "vinit76","vkb1234");
-        stm=con.createStatement();
-        ResultSet rs1,rs2;
         while ( true ) {
             try {
-                requests = (ArrayList) in.readObject();
+                requests = (HashSet) in.readObject();
                 for (Iterator it = requests.iterator(); it.hasNext();) {
                     request = (Request) it.next();
                     System.out.print("Request Received from "+s.getInetAddress()+":"+ s.getPort()+"->"+request.str);
                     System.out.println(" [Request Number#"+request.reqNum+"]");
                     if ((request.ip)==null) request.ip=s.getInetAddress();
                     if ((request.port)==0) request.port=s.getPort();
-                    //Reading requests from database
-                    synchronized(this){
-                        rs1=stm.executeQuery("SELECT * FROM VK");
-                        while(rs1.next()){
-                          System.out.println(rs1.getInt(1));
-                        }
-                        //reading total available requests in database
-                        rs2=stm.executeQuery("SELECT COUNT(*) FROM VK");
-                        while(rs2.next()){
-                            row_count=rs2.getInt(1);
-                            System.out.println(row_count);
-                        }
-                        //insert the requests into database
-                        try{
-                            psmt=con.prepareStatement("INSERT INTO VK VALUES(?,?)");
-                            psmt.setInt(1,row_count+1);
-                            psmt.setString(2,"Ayushi");
-                            psmt.executeUpdate();
-                        }catch(SQLException e){
-                          System.out.println(e);  
-                        }
-                    }
+                }
+                //saving requests into database
+                DatabaseHandeler dbh=new DatabaseHandeler();
+                dbh.saveRequests(requests);
+                synchronized(this){        
+                    notifyAll();
                 }
             } catch (ClassNotFoundException | IOException ex) {
-                Logger.getLogger(Acceptor.class.getName()).log(Level.SEVERE, null, ex);
-            }
+                System.out.println("Exception:"+ex);
+            } 
         }
     }
-    private void send(ArrayList requests) throws IOException{
+    private void sendRequests(HashSet requests) throws IOException{
         out.writeObject(requests);
         out.flush();
     }
-    ArrayList reqIds = new ArrayList();
-    ReqId reqId=new ReqId();
+    private void waitForRequests()throws InterruptedException{
+        synchronized(this){        
+            wait();
+        }
+    }
 }

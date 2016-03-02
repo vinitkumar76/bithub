@@ -16,7 +16,7 @@
 package htringpaxos;
 
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.util.HashSet;
 
 /**
  *
@@ -24,5 +24,5 @@ import java.util.ArrayList;
  */
 public class Batch implements Serializable{
 int batchId;
-ArrayList reqIds = new ArrayList();
+HashSet reqIds = new HashSet();
 }

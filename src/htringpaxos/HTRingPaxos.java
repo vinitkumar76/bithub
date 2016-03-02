@@ -24,9 +24,11 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
@@ -116,7 +118,20 @@ public class HTRingPaxos extends Application {
     public static void main(String[] args) throws Exception {
         launch(args);
         }
+
+    /**
+     *
+     */
+    protected static int a_num=-1;
+    String textString=null;
+    synchronized void waitting() throws InterruptedException{
+        wait();
+    }
+    synchronized void notifying() throws InterruptedException{
+        notifyAll();
+    }
     private void dialog(Stage s,String str){
+       
         Stage dialog=new Stage();
         dialog.initOwner(s);
         dialog.initModality(Modality.APPLICATION_MODAL);
@@ -124,26 +139,56 @@ public class HTRingPaxos extends Application {
         l2.setTextFill(Color.BROWN);
         l2.setFont(Font.font(18));
         Button btn4=new Button("OK");
-        btn4.setMinSize(80, 30);
-        BorderPane root = new BorderPane();
-        root.setTop(l2);
-        l2.setMinHeight(100);
-        BorderPane.setAlignment(l2,Pos.BOTTOM_CENTER);
-        root.setCenter(btn4);
-        BorderPane.setAlignment(btn4,Pos.TOP_CENTER);
-        Scene scene1 = new Scene(root, 400, 200);
-        dialog.setTitle(str+" Says....");
-        dialog.setScene(scene1);
-        dialog.show();
-        btn4.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                try {
-                    dialog.close();
-                }catch (Exception ex) {
-                    Logger.getLogger(HTRingPaxos.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+        btn4.setMinSize(80,30);
+        //For setting Acceptor number
+        if (str.equals("Acceptor")){
+            final TextField text = new TextField();
+            text.setPrefColumnCount(20);
+            text.setPromptText("Enter Acceptor Number");
+            text.setStyle("-fx-prompt-text-fill:derive(-fx-control-inner-background,-30%);}");
+            //text.setEditable(true);
+            text.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent ae) {
+                textString=text.getText();
+                a_num=Integer.parseInt(textString);
+                System.out.println(a_num);               
+                dialog.close();
+                }
+            });
+            VBox vb=new VBox();
+            vb.getChildren().add(text);
+            vb.getChildren().add(btn4);
+            vb.setMaxWidth(150);
+            vb.setAlignment(Pos.TOP_CENTER);
+            vb.setSpacing(20);
+            BorderPane root = new BorderPane();
+            root.setTop(l2);
+            l2.setMinHeight(100);
+            BorderPane.setAlignment(l2,Pos.BOTTOM_CENTER);
+            root.setCenter(vb);
+            BorderPane.setAlignment(vb,Pos.TOP_CENTER);
+            Scene scene1 = new Scene(root, 400, 200);
+            dialog.setTitle(str+" Says....");
+            dialog.setScene(scene1);
+            dialog.show();
+        }else{
+            BorderPane root = new BorderPane();
+            root.setTop(l2);
+            l2.setMinHeight(100);
+            BorderPane.setAlignment(l2,Pos.BOTTOM_CENTER);
+            root.setCenter(btn4);
+            BorderPane.setAlignment(btn4,Pos.TOP_CENTER);
+            Scene scene1 = new Scene(root, 400, 200);
+            dialog.setTitle(str+" Says....");
+            dialog.setScene(scene1);
+            dialog.show();
             }
-        });
+        btn4.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent event) {
+                    dialog.close();
+                }
+            });
     }
 }
