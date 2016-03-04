@@ -20,8 +20,6 @@ package htringpaxos;
  * @author Vinitkumar
  */
 public class Learner implements Runnable {
-    Learner(){
-    }
 public void runLearner(){
     
 }

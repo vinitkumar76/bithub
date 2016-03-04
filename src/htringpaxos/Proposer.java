@@ -27,16 +27,16 @@ import java.util.HashSet;
  * @author Vinitkumar
  */
 public class Proposer extends HTRingPaxos{
-Proposer() {
-    }
-ObjectOutputStream out=null;
-public void runProposer() throws Exception {
-    Socket s;
-    int j=5000+a_num;
-    s = new Socket("localhost",j);
-    out = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
-    Request request;
-    while(true)
+    int i=0;
+    ObjectOutputStream out=null;
+    BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
+    public void runProposer() throws Exception {
+        Socket s;
+        int port=5000+a_num;
+        s = new Socket("localhost",port);
+        out = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
+        Request request;
+        while(true)
         {    
             while (true) { 
                 try {
@@ -51,18 +51,16 @@ public void runProposer() throws Exception {
             }   
         }
     }
-private void send(HashSet requests) throws IOException{
-    out.writeObject(requests);
-    out.flush();
-}
-BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
-int i=0;
-private Request getRequest() throws IOException{
-    String fromuser;
-    System.out.print("Request Value? ");
-    fromuser = inFromUser.readLine();
-    ++i;
-    Request r = new Request(i,fromuser);
-    return r;  
+    private void send(HashSet requests) throws IOException{
+        out.writeObject(requests);
+        out.flush();
+    }
+    private Request getRequest() throws IOException{
+        String fromuser;
+        System.out.print("Request Value? ");
+        fromuser = inFromUser.readLine();
+        ++i;
+        Request r = new Request(i,fromuser);
+        return r;  
     }
 }

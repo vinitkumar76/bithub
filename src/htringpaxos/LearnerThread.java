@@ -22,12 +22,11 @@ import java.util.logging.Logger;
  *
  * @author Vinitkumar
  */
-public class LearnerThread implements Runnable{
-Learner l=new Learner();
+public class LearnerThread extends Learner implements Runnable{
 @Override
 public void run(){
     try {
-        l.runLearner();
+        runLearner();
     } catch (Exception ex) {
         Logger.getLogger(AcceptorThread.class.getName()).log(Level.SEVERE, null, ex);
     }

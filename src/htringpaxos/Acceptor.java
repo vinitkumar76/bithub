@@ -31,13 +31,15 @@ import java.util.Iterator;
  *
  * @author Vinitkumar
  */
-    public class Acceptor extends HTRingPaxos implements Runnable {
+    public class Acceptor extends DatabaseHandeler implements Runnable {
     boolean leader=false;
     Socket s;
     ObjectInputStream in;
     ObjectOutputStream out;
     BufferedReader inFromUser;
     private boolean forwardingReq;
+    private final Object lock1=new Object();
+    private final Object lock2=new Object();
     Acceptor() {
     }
     Acceptor(boolean forwardingReq) throws IOException {
@@ -56,9 +58,8 @@ import java.util.Iterator;
      * @throws java.lang.Exception
      */
     public void runAcceptor() throws Exception {
-        System.out.println("Vinit");
-        int i=5000+a_num;
-        ServerSocket ss = new ServerSocket (i);
+        int port=5000+a_num;
+        ServerSocket ss = new ServerSocket (port);
         while(true) 
         { 
             Socket socket = ss.accept();
@@ -79,7 +80,7 @@ import java.util.Iterator;
         if(forwardingReq==true){
             try {
                 forwardRequests();
-            } catch (SQLException | ClassNotFoundException | InterruptedException ex) {
+            } catch (SQLException | ClassNotFoundException | InterruptedException | IOException ex) {
                 System.out.println("Exception:"+ex);
             }
         }
@@ -92,50 +93,59 @@ import java.util.Iterator;
                 }
             }
     }
-    HashSet requests=new HashSet();
-    Request request;
-    private void forwardRequests() throws SQLException, ClassNotFoundException, InterruptedException{
+    //HashSet requests=new HashSet();
+    //Request request;
+    private void forwardRequests() throws SQLException, ClassNotFoundException, InterruptedException, IOException{
+        //Finding next acceptor in a ring
+        int nextPort,next;
         try {
             forwardingReq=false;
             HashSet reqs;
             Socket socket;
-            int next=5000+a_num;
+            next=(a_num+1)%(a_total);
+            nextPort=5000+next;
             while(true){
-            try{    
-            socket = new Socket("localhost",next);
-            break;
-            }catch(Exception e){
-                next=(next+1)%4;
-            }
-            }
-            out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-            DatabaseHandeler dbh=new DatabaseHandeler();
-            while(true){
-                while(true)
-                {   
-                    try{
-                        if (dbh.countRequests()==0)
-                            try {
-                                waitForRequests();
-                            } catch (InterruptedException ex) {
-                                System.out.println("Exception:"+ex);
+                try{
+                    socket = new Socket("localhost",nextPort);
+                    break;
+                }catch(IOException e){
+                    try {
+                            synchronized(lock2){
+                                lock2.wait();
                             }
-                        reqs=dbh.getRequests();
-                        sendRequests(reqs);
-                        try {
-                                waitForRequests();
-                            } catch (InterruptedException ex) {
-                                System.out.println("Exception:"+ex);
-                            }
-                    }catch(IOException e){
-                        System.out.println("Exception:"+e);
-                    }
+                        }catch (InterruptedException ex){
+                            System.out.println("Exception:"+ex);
+                        }
+                    //next=(next+1)%(a_total);
+                    //nextPort=5000+next;
                 }
             }
-        } catch (IOException ex) {
+            //forwarding requests
+            out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+            while(true)
+            {   
+                try{
+                    if (countRequests()>0){
+                        reqs=getRequests();
+                        sendRequests(reqs);
+                    }else{
+                        try {
+                            synchronized(lock1){
+                                lock1.wait();  
+                            } 
+                        }catch (InterruptedException ex) {
+                                System.out.println("Exception:"+ex);
+                            }
+                    }
+                }catch(IOException e){
+                    System.out.println("Exception:"+e);
+                    }
+            }
+        }catch (IOException ex) {
             System.out.println("Exception:"+ex);
-        }
+            }
     }
+    //receiving requests from proposers
     private void receiveRequests()throws Exception {
         while ( true ) {
             try {
@@ -148,10 +158,9 @@ import java.util.Iterator;
                     if ((request.port)==0) request.port=s.getPort();
                 }
                 //saving requests into database
-                DatabaseHandeler dbh=new DatabaseHandeler();
-                dbh.saveRequests(requests);
-                synchronized(this){        
-                    notifyAll();
+                saveRequests(requests);
+                synchronized(lock1){        
+                    lock1.notify();
                 }
             } catch (ClassNotFoundException | IOException ex) {
                 System.out.println("Exception:"+ex);
@@ -161,10 +170,5 @@ import java.util.Iterator;
     private void sendRequests(HashSet requests) throws IOException{
         out.writeObject(requests);
         out.flush();
-    }
-    private void waitForRequests()throws InterruptedException{
-        synchronized(this){        
-            wait();
-        }
     }
 }

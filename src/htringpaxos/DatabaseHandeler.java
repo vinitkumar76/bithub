@@ -32,25 +32,24 @@ import java.util.Iterator;
  *
  * @author Vinitkumar
  */
-public class DatabaseHandeler {
-    int row_count;
-    final String URL="jdbc:oracle:thin:@localhost:1521:XE";
+public class DatabaseHandeler extends HTRingPaxos{
+    int row_count,id;
+    Request request;
     HashSet requests=new HashSet();
-    HashSet requests2=new HashSet();;
-    byte[] requestsAsByte;
-    public void DatabaseHandeler()throws SQLException, IOException{
-        DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
-    }
+    HashSet requests2=new HashSet();
+    final String URL="jdbc:oracle:thin:@localhost:1521:XE";
     /**
      *
      * @param requests
      * @throws SQLException
      * @throws java.io.IOException
+     * @throws java.lang.ClassNotFoundException
      */
     public void saveRequests(HashSet requests)throws SQLException, IOException, ClassNotFoundException {
         ObjectOutputStream out;
-        synchronized(this){
+        synchronized(DatabaseHandeler.class){
             //insert the requests into database
+            DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
             requests2=getRequests();
             for (Iterator it = requests.iterator(); it.hasNext();) {
                 request=(Request) it.next();
@@ -63,8 +62,6 @@ public class DatabaseHandeler {
             out=new ObjectOutputStream(blob.setBinaryStream(1));
             out.writeObject(requests2);
             out.flush();
-
-            //System.out.println(blob.length());
             PreparedStatement psmt;
             psmt=con.prepareStatement("INSERT INTO REQUESTS VALUES(?,?)");
             psmt.setObject(1,blob);
@@ -80,16 +77,16 @@ public class DatabaseHandeler {
      * @throws java.io.IOException
      * @throws java.lang.ClassNotFoundException
      */
-    Request request;
-    int id;
-    public HashSet getRequests()throws SQLException, IOException, ClassNotFoundException {
-        ObjectInputStream in;
-        InputStream inn;
-        ResultSet rs1;
-        Connection con;
-        con = DriverManager.getConnection(URL, "vinit76","vkb1234");
-        Blob blob;
-        synchronized(this){
+    protected HashSet getRequests()throws SQLException, IOException, ClassNotFoundException {
+        
+        synchronized(DatabaseHandeler.class){
+            DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
+            ObjectInputStream in;
+            InputStream inn;
+            ResultSet rs1;
+            Connection con;
+            con = DriverManager.getConnection(URL, "vinit76","vkb1234");
+            Blob blob;
             Statement stm=con.createStatement();
             id=countRequests();
             rs1=stm.executeQuery("SELECT * FROM REQUESTS WHERE ID="+id);
@@ -99,9 +96,9 @@ public class DatabaseHandeler {
                 in=new ObjectInputStream(inn);
                 requests=(HashSet) in.readObject();
             }
+            con.close();  
         }
-        con.close();
-        return requests2;
+        return requests;
     }
     /**
      *

@@ -15,31 +15,26 @@
  */
 package htringpaxos;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
  *
  * @author Vinitkumar
  */
-public class AcceptorThread extends HTRingPaxos implements Runnable{
-@Override
-public void run(){
-    try {
-        synchronized (this){
-            while(a_num<0){
-              wait(2000);  
+public class AcceptorThread extends Acceptor implements Runnable{
+    boolean forwardingReq=true;
+    @Override
+    public void run(){
+        try {
+            synchronized (this){
+                while(a_num<0||a_total<0){
+                  wait(2000);  
+                }
             }
+            Thread t=new Thread(new Acceptor(forwardingReq));
+            t.setDaemon(true);
+            t.start();
+            runAcceptor();
+        } catch (Exception ex) {
+            System.out.println(ex);
         }
-        boolean forwardingReq=true;
-        Thread t=new Thread(new Acceptor(forwardingReq));
-        t.setDaemon(true);
-        t.start();
-        Acceptor a=new Acceptor();
-        a.runAcceptor();
-    } catch (Exception ex) {
-        System.out.println("vinit2");   
-        Logger.getLogger(AcceptorThread.class.getName()).log(Level.SEVERE, null, ex);
-    }
-}    
+    }    
 }

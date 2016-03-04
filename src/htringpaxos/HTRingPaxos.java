@@ -26,6 +26,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -122,7 +124,7 @@ public class HTRingPaxos extends Application {
     /**
      *
      */
-    protected static int a_num=-1;
+    protected static int a_num=-1,a_total=-1;
     String textString=null;
     synchronized void waitting() throws InterruptedException{
         wait();
@@ -140,35 +142,48 @@ public class HTRingPaxos extends Application {
         l2.setFont(Font.font(18));
         Button btn4=new Button("OK");
         btn4.setMinSize(80,30);
+        final TextField text1;
+        final TextField text2;
         //For setting Acceptor number
         if (str.equals("Acceptor")){
-            final TextField text = new TextField();
-            text.setPrefColumnCount(20);
-            text.setPromptText("Enter Acceptor Number");
-            text.setStyle("-fx-prompt-text-fill:derive(-fx-control-inner-background,-30%);}");
-            //text.setEditable(true);
-            text.setOnAction(new EventHandler<ActionEvent>() {
+            text1 = new TextField();
+            text1.setPrefColumnCount(20);
+            text1.setPromptText("Enter Acceptor Number");
+            text1.setStyle("-fx-prompt-text-fill:derive(-fx-control-inner-background,-30%);}");
+            text1.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent ae) {
-                textString=text.getText();
-                a_num=Integer.parseInt(textString);
-                System.out.println(a_num);               
-                dialog.close();
+                    textString=text1.getText();
+                    a_num=Integer.parseInt(textString);
+                    text1.setDisable(true);
+                }
+            });
+            text2 = new TextField();
+            text2.setPrefColumnCount(60);
+            text2.setPromptText("Enter Total Number of Acceptors");
+            text2.setStyle("-fx-prompt-text-fill:derive(-fx-control-inner-background,-30%);}");
+            text2.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent ae) {
+                textString=text2.getText();
+                a_total=Integer.parseInt(textString);
+                text2.setDisable(true);
                 }
             });
             VBox vb=new VBox();
-            vb.getChildren().add(text);
+            vb.getChildren().add(text1);
+            vb.getChildren().add(text2);
             vb.getChildren().add(btn4);
             vb.setMaxWidth(150);
             vb.setAlignment(Pos.TOP_CENTER);
             vb.setSpacing(20);
             BorderPane root = new BorderPane();
             root.setTop(l2);
-            l2.setMinHeight(100);
+            l2.setMinHeight(70);
             BorderPane.setAlignment(l2,Pos.BOTTOM_CENTER);
             root.setCenter(vb);
             BorderPane.setAlignment(vb,Pos.TOP_CENTER);
-            Scene scene1 = new Scene(root, 400, 200);
+            Scene scene1 = new Scene(root, 500, 200);
             dialog.setTitle(str+" Says....");
             dialog.setScene(scene1);
             dialog.show();
@@ -187,6 +202,13 @@ public class HTRingPaxos extends Application {
         btn4.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent event) {
+                    dialog.close();
+                }
+            });
+        btn4.setOnKeyPressed(new EventHandler<KeyEvent>() {
+                @Override
+                public void handle(KeyEvent event) {
+                    if(event.getCode()==KeyCode.ENTER)
                     dialog.close();
                 }
             });

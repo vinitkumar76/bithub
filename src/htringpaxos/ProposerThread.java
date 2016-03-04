@@ -22,12 +22,11 @@ import java.util.logging.Logger;
  *
  * @author Vinitkumar
  */
-public class ProposerThread implements Runnable{
-Proposer p=new Proposer();
+public class ProposerThread extends Proposer implements Runnable{
 @Override
 public void run(){
     try {
-        p.runProposer();
+        runProposer();
     } catch (Exception ex) {
         Logger.getLogger(AcceptorThread.class.getName()).log(Level.SEVERE, null, ex);
     }
