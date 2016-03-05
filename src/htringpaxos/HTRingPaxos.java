@@ -142,41 +142,43 @@ public class HTRingPaxos extends Application {
         l2.setFont(Font.font(18));
         Button btn4=new Button("OK");
         btn4.setMinSize(80,30);
-        final TextField text1;
-        final TextField text2;
+        final TextField text1=new TextField();
+        final TextField text2=new TextField();
         //For setting Acceptor number
         if (str.equals("Acceptor")){
-            text1 = new TextField();
-            text1.setPrefColumnCount(20);
-            text1.setPromptText("Enter Acceptor Number");
+            text2.setDisable(true);
+            btn4.setDisable(true);
+            text1.setPrefColumnCount(60);
+            text1.setPromptText("Enter Total Number of Acceptors");
             text1.setStyle("-fx-prompt-text-fill:derive(-fx-control-inner-background,-30%);}");
             text1.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent ae) {
-                    textString=text1.getText();
-                    a_num=Integer.parseInt(textString);
-                    text1.setDisable(true);
+                textString=text1.getText();
+                a_total=Integer.parseInt(textString);
+                text1.setDisable(true);
+                text2.setDisable(false);
+                text2.setPrefColumnCount(60);
+                text2.setPromptText("Enter Acceptor Number: Range(0 to "+(a_total-1)+")");
+                text2.setStyle("-fx-prompt-text-fill:derive(-fx-control-inner-background,-30%);}");
                 }
             });
-            text2 = new TextField();
-            text2.setPrefColumnCount(60);
-            text2.setPromptText("Enter Total Number of Acceptors");
-            text2.setStyle("-fx-prompt-text-fill:derive(-fx-control-inner-background,-30%);}");
             text2.setOnAction(new EventHandler<ActionEvent>() {
                 @Override
                 public void handle(ActionEvent ae) {
-                textString=text2.getText();
-                a_total=Integer.parseInt(textString);
-                text2.setDisable(true);
+                    textString=text2.getText();
+                    a_num=Integer.parseInt(textString);
+                    text2.setDisable(true);
+                    btn4.setDisable(false);
                 }
             });
             VBox vb=new VBox();
             vb.getChildren().add(text1);
             vb.getChildren().add(text2);
             vb.getChildren().add(btn4);
-            vb.setMaxWidth(150);
+            vb.setMaxWidth(250);
             vb.setAlignment(Pos.TOP_CENTER);
-            vb.setSpacing(20);
+            vb.setSpacing(15);
             BorderPane root = new BorderPane();
             root.setTop(l2);
             l2.setMinHeight(70);

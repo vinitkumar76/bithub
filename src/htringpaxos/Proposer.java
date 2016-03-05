@@ -36,20 +36,19 @@ public class Proposer extends HTRingPaxos{
         s = new Socket("localhost",port);
         out = new ObjectOutputStream(new BufferedOutputStream(s.getOutputStream()));
         Request request;
-        while(true)
-        {    
-            while (true) { 
-                try {
-                    HashSet requests=new HashSet();
-                    request=getRequest();
-                    requests.add(request);
-                    send(requests);
-                    }
-                catch (IOException e) {
-                System.out.println("Exception:"+e);
+        while (true) { 
+            try {
+                System.out.println("Vinit 30");
+                HashSet requests=new HashSet();
+                request=getRequest();
+                requests.add(request);
+                send(requests);
+                System.out.println("Vinit 31");
                 }
-            }   
-        }
+            catch (IOException e) {
+            System.out.println("Exception:"+e);
+            }
+        }   
     }
     private void send(HashSet requests) throws IOException{
         out.writeObject(requests);

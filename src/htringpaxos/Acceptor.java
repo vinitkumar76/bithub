@@ -34,16 +34,18 @@ import java.util.Iterator;
     public class Acceptor extends DatabaseHandeler implements Runnable {
     boolean leader=false;
     Socket s;
+    int port;
     ObjectInputStream in;
     ObjectOutputStream out;
     BufferedReader inFromUser;
     private boolean forwardingReq;
-    private final Object lock1=new Object();
-    private final Object lock2=new Object();
+    private final static Object lock1=new Object();
+    private final static Object lock2=new Object();
     Acceptor() {
     }
     Acceptor(boolean forwardingReq) throws IOException {
-            this.forwardingReq = forwardingReq;
+        port=5000+a_num;    
+        this.forwardingReq = forwardingReq;
     }
     Acceptor(Socket s) throws IOException {
         try{
@@ -58,7 +60,7 @@ import java.util.Iterator;
      * @throws java.lang.Exception
      */
     public void runAcceptor() throws Exception {
-        int port=5000+a_num;
+        port=5000+a_num;
         ServerSocket ss = new ServerSocket (port);
         while(true) 
         { 
@@ -93,62 +95,62 @@ import java.util.Iterator;
                 }
             }
     }
-    //HashSet requests=new HashSet();
-    //Request request;
     private void forwardRequests() throws SQLException, ClassNotFoundException, InterruptedException, IOException{
         //Finding next acceptor in a ring
         int nextPort,next;
-        try {
-            forwardingReq=false;
-            HashSet reqs;
-            Socket socket;
+        forwardingReq=false;
+        HashSet reqs;
+        Socket socket;
+        while(true){
             next=(a_num+1)%(a_total);
             nextPort=5000+next;
+            System.out.println("Vinit 1");
             while(true){
+                System.out.println("Vinit 2");
                 try{
-                    socket = new Socket("localhost",nextPort);
-                    break;
-                }catch(IOException e){
-                    try {
-                            synchronized(lock2){
-                                lock2.wait();
-                            }
-                        }catch (InterruptedException ex){
-                            System.out.println("Exception:"+ex);
+                    if (nextPort!=port){
+                        System.out.println("Vinit 3");
+                        socket = new Socket("localhost",nextPort);
+                        System.out.println("Vinit 4");
+                        break;
+                    }else{
+                        synchronized(lock2){
+                            System.out.println("Vinit 5");
+                            lock2.wait();
                         }
-                    //next=(next+1)%(a_total);
-                    //nextPort=5000+next;
-                }
+                    }
+                }catch (IOException | InterruptedException ex){}
+                System.out.println("Vinit 6");
+                next=(next+1)%(a_total);
+                nextPort=5000+next;
             }
             //forwarding requests
-            out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-            while(true)
-            {   
-                try{
-                    if (countRequests()>0){
-                        reqs=getRequests();
-                        sendRequests(reqs);
-                    }else{
-                        try {
-                            synchronized(lock1){
-                                lock1.wait();  
-                            } 
-                        }catch (InterruptedException ex) {
-                                System.out.println("Exception:"+ex);
-                            }
+            try{
+                out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+                if (countRequests()>0){
+                    System.out.println("Vinit 7");
+                    reqs=getRequests();
+                    sendRequests(reqs);
+                }else{
+                    try {
+                        synchronized(lock1){
+                            System.out.println("Vinit 8");
+                            lock1.wait();
+                        }
+                    }catch (InterruptedException ex) {
+                        System.out.println("Exception:"+ex);
                     }
-                }catch(IOException e){
-                    System.out.println("Exception:"+e);
-                    }
+                }
+            }catch(IOException e){
+                System.out.println("Exception:"+e);
             }
-        }catch (IOException ex) {
-            System.out.println("Exception:"+ex);
-            }
+        }
     }
     //receiving requests from proposers
     private void receiveRequests()throws Exception {
-        while ( true ) {
+        while(true){
             try {
+                System.out.println("Vinit 9");
                 requests = (HashSet) in.readObject();
                 for (Iterator it = requests.iterator(); it.hasNext();) {
                     request = (Request) it.next();
@@ -161,8 +163,13 @@ import java.util.Iterator;
                 saveRequests(requests);
                 synchronized(lock1){        
                     lock1.notify();
+                    System.out.println("Vinit 10");
                 }
-            } catch (ClassNotFoundException | IOException ex) {
+                synchronized(lock2){        
+                    lock2.notify();
+                    System.out.println("Vinit 11");
+                }
+            }catch(ClassNotFoundException | IOException ex) {
                 System.out.println("Exception:"+ex);
             } 
         }
