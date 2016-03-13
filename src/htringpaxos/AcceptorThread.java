@@ -20,7 +20,6 @@ package htringpaxos;
  * @author Vinitkumar
  */
 public class AcceptorThread extends Acceptor implements Runnable{
-    boolean forwardingReq=true;
     @Override
     public void run(){
         try {
@@ -29,9 +28,14 @@ public class AcceptorThread extends Acceptor implements Runnable{
                   wait(2000);  
                 }
             }
-            Thread t=new Thread(new Acceptor(forwardingReq));
-            t.setDaemon(true);
-            t.start();
+            Thread t1=new Thread(new Acceptor());
+            t1.setDaemon(true);
+            t1.start();
+            if (leader==true){
+                Thread t2=new Thread(new Acceptor());
+                t2.setDaemon(true);
+                t2.start();
+            }
             runAcceptor();
         } catch (Exception ex) {
             System.out.println(ex);

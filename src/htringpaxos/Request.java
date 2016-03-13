@@ -17,7 +17,7 @@ package htringpaxos;
 
 import java.io.Serializable;
 import java.net.InetAddress;
-
+import java.util.Objects;
 /**
  *
  * @author Vinitkumar
@@ -31,5 +31,55 @@ public class Request implements Serializable{
         this.port = 0;
         this.reqNum = reqNum;
         this.str = str;
-    }    
+    }
+    /**
+     *
+     * @param obj
+     * @return
+     */
+   
+    /**
+     *
+     * @return
+     */
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 89 * hash + this.reqNum;
+        hash = 89 * hash + this.port;
+        hash = 89 * hash + Objects.hashCode(this.str);
+        hash = 89 * hash + Objects.hashCode(this.ip);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Request other = (Request) obj;
+        if (this.reqNum != other.reqNum) {
+            return false;
+        }
+        if (this.port != other.port) {
+            return false;
+        }
+        if (!Objects.equals(this.str, other.str)) {
+            return false;
+        }
+        if (!Objects.equals(this.ip, other.ip)) {
+            return false;
+        }
+        return true;
+    }
+    @Override
+    public String toString(){
+        return "["+this.ip+":"+this.port+"/"+this.reqNum+"/"+this.str+"]:Hash code->"+this.hashCode();
+    }
 }

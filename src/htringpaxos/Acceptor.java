@@ -17,9 +17,7 @@ package htringpaxos;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
@@ -32,29 +30,18 @@ import java.util.Iterator;
  * @author Vinitkumar
  */
     public class Acceptor extends DatabaseHandeler implements Runnable {
-    boolean leader=false;
+    static boolean leader=false, fwdReq=true;
+    static int crnd,rnd,vrnd;
+    static HashSet cval, vval;
     Socket s;
     int port;
-    ObjectInputStream in;
-    ObjectOutputStream out;
-    BufferedReader inFromUser;
-    private boolean forwardingReq;
     private final static Object lock1=new Object();
     private final static Object lock2=new Object();
     Acceptor() {
+        port=5000+a_num;  
     }
-    Acceptor(boolean forwardingReq) throws IOException {
-        port=5000+a_num;    
-        this.forwardingReq = forwardingReq;
-    }
-    Acceptor(Socket s) throws IOException {
-        try{
+    Acceptor(Socket s){
         this.s = s;
-        in = new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
-        inFromUser= new BufferedReader(new InputStreamReader(System.in));
-        } catch(IOException e){
-            System.out.println("Exception:"+e);
-        }
     }
     /**
      * @throws java.lang.Exception
@@ -79,8 +66,10 @@ import java.util.Iterator;
     @Override
     public void run(){
         //forwarding requests to other acceptors
-        if(forwardingReq==true){
+        if(fwdReq==true){
             try {
+                fwdReq=false;
+                getRequests();
                 forwardRequests();
             } catch (SQLException | ClassNotFoundException | InterruptedException | IOException ex) {
                 System.out.println("Exception:"+ex);
@@ -95,87 +84,72 @@ import java.util.Iterator;
                 }
             }
     }
-    private void forwardRequests() throws SQLException, ClassNotFoundException, InterruptedException, IOException{
-        //Finding next acceptor in a ring
+    private void forwardRequests() throws ClassNotFoundException, InterruptedException, IOException{
         int nextPort,next;
-        forwardingReq=false;
-        HashSet reqs;
         Socket socket;
+        ObjectOutputStream out;
+        HashSet reqs;
         while(true){
             next=(a_num+1)%(a_total);
             nextPort=5000+next;
-            System.out.println("Vinit 1");
-            while(true){
-                System.out.println("Vinit 2");
-                try{
-                    if (nextPort!=port){
-                        System.out.println("Vinit 3");
-                        socket = new Socket("localhost",nextPort);
-                        System.out.println("Vinit 4");
-                        break;
-                    }else{
-                        synchronized(lock2){
-                            System.out.println("Vinit 5");
-                            lock2.wait();
-                        }
+            reqs=(HashSet) fwdRequests.clone();
+            if (reqs.isEmpty()){
+                try {
+                    synchronized(lock1){
+                        lock1.wait();
                     }
-                }catch (IOException | InterruptedException ex){}
-                System.out.println("Vinit 6");
-                next=(next+1)%(a_total);
-                nextPort=5000+next;
-            }
-            //forwarding requests
-            try{
-                out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-                if (countRequests()>0){
-                    System.out.println("Vinit 7");
-                    reqs=getRequests();
-                    sendRequests(reqs);
-                }else{
-                    try {
-                        synchronized(lock1){
-                            System.out.println("Vinit 8");
-                            lock1.wait();
-                        }
-                    }catch (InterruptedException ex) {
-                        System.out.println("Exception:"+ex);
-                    }
+                }catch (InterruptedException ex) {
                 }
-            }catch(IOException e){
-                System.out.println("Exception:"+e);
+            }else{
+                while(true){
+                    try{
+                        if (nextPort!=port){
+                            socket = new Socket("localhost",nextPort);
+                            break;
+                        }else{
+                            synchronized(lock2){
+                                lock2.wait();
+                            }
+                        }
+                    }catch (IOException | InterruptedException ex){}
+                    next=(next+1)%(a_total);
+                    nextPort=5000+next;
+                }
+                try{
+                    out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+                    out.writeObject(reqs);
+                    out.flush();
+                    fwdRequests.clear();
+                    socket.close();
+                }catch(IOException e){
+                    socket.close();
+                }
             }
         }
     }
-    //receiving requests from proposers
     private void receiveRequests()throws Exception {
+        HashSet requests;
+        Request req;
+        ObjectInputStream in=new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
         while(true){
             try {
-                System.out.println("Vinit 9");
                 requests = (HashSet) in.readObject();
+               System.out.println("Requests received"); 
                 for (Iterator it = requests.iterator(); it.hasNext();) {
-                    request = (Request) it.next();
-                    System.out.print("Request Received from "+s.getInetAddress()+":"+ s.getPort()+"->"+request.str);
-                    System.out.println(" [Request Number#"+request.reqNum+"]");
-                    if ((request.ip)==null) request.ip=s.getInetAddress();
-                    if ((request.port)==0) request.port=s.getPort();
+                    req = (Request) it.next();
+                    if ((req.ip)==null) req.ip=s.getInetAddress();
+                    if ((req.port)==0) req.port=s.getPort();
+                    System.out.println(req);
                 }
                 //saving requests into database
-                saveRequests(requests);
-                synchronized(lock1){        
+                synchronized(lock1){ 
+                    saveRequests(requests);
                     lock1.notify();
-                    System.out.println("Vinit 10");
                 }
                 synchronized(lock2){        
                     lock2.notify();
-                    System.out.println("Vinit 11");
                 }
-            }catch(ClassNotFoundException | IOException ex) {
-                System.out.println("Exception:"+ex);
-            } 
+            }catch(ClassNotFoundException | IOException| SQLException ex) {} 
         }
-    }
-    private void sendRequests(HashSet requests) throws IOException{
-        out.writeObject(requests);
-        out.flush();
     }
 }

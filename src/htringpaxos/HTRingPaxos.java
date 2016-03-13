@@ -64,6 +64,22 @@ public class HTRingPaxos extends Application {
                 }
             }
         });
+        btn1.setOnKeyPressed(new EventHandler<KeyEvent>() {
+                @Override
+                public void handle(KeyEvent event) {
+                    if(event.getCode()==KeyCode.ENTER){
+                        try {
+                        Thread t =new Thread(new AcceptorThread());
+                        t.setDaemon(true);
+                        t.start();
+                        btn1.setDisable(true);
+                        dialog(primaryStage,"Acceptor");
+                        } catch (Exception ex) {
+                        Logger.getLogger(HTRingPaxos.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+            });
         Button btn2 = new Button("Proposer");
         btn2.setMinSize(100, 40);
         btn2.setOnAction(new EventHandler<ActionEvent>() {
@@ -80,6 +96,22 @@ public class HTRingPaxos extends Application {
                 }
             }
         });
+        btn2.setOnKeyPressed(new EventHandler<KeyEvent>() {
+                @Override
+                public void handle(KeyEvent event) {
+                    if(event.getCode()==KeyCode.ENTER){
+                        try {
+                            Thread t= new Thread(new ProposerThread());
+                            t.setDaemon(true);
+                            t.start();
+                            btn2.setDisable(true);
+                            dialog(primaryStage,"Proposer");
+                        } catch (Exception ex) {
+                        Logger.getLogger(HTRingPaxos.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+            });
         Button btn3 = new Button("Learner");
         btn3.setMinSize(100, 40);
         btn3.setOnAction(new EventHandler<ActionEvent>() {
@@ -96,6 +128,22 @@ public class HTRingPaxos extends Application {
                 }
             }
         });
+        btn3.setOnKeyPressed(new EventHandler<KeyEvent>() {
+                @Override
+                public void handle(KeyEvent event) {
+                    if(event.getCode()==KeyCode.ENTER){
+                        try {
+                            Thread t= new Thread(new LearnerThread());
+                            t.setDaemon(true);
+                            t.start();
+                            btn3.setDisable(true);
+                            dialog(primaryStage,"Learner");
+                        } catch (Exception ex) {
+                        Logger.getLogger(HTRingPaxos.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+            });
         BorderPane root=new BorderPane();
         root.setTop(l1);
         l1.setMinHeight(100);
@@ -133,7 +181,6 @@ public class HTRingPaxos extends Application {
         notifyAll();
     }
     private void dialog(Stage s,String str){
-       
         Stage dialog=new Stage();
         dialog.initOwner(s);
         dialog.initModality(Modality.APPLICATION_MODAL);

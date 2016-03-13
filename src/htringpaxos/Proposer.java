@@ -38,12 +38,10 @@ public class Proposer extends HTRingPaxos{
         Request request;
         while (true) { 
             try {
-                System.out.println("Vinit 30");
                 HashSet requests=new HashSet();
                 request=getRequest();
                 requests.add(request);
                 send(requests);
-                System.out.println("Vinit 31");
                 }
             catch (IOException e) {
             System.out.println("Exception:"+e);

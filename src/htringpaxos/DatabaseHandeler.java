@@ -33,52 +33,58 @@ import java.util.Iterator;
  * @author Vinitkumar
  */
 public class DatabaseHandeler extends HTRingPaxos{
-    int row_count,id;
-    Request request;
-    HashSet requests=new HashSet();
-    HashSet requests2=new HashSet();
+    private static HashSet requestsDb=new HashSet();
+    protected static HashSet fwdRequests=new HashSet();
     final String URL="jdbc:oracle:thin:@localhost:1521:XE";
     /**
-     *
-     * @param requests
+     * Saves requests into database
+     * @param requests 
      * @throws SQLException
      * @throws java.io.IOException
      * @throws java.lang.ClassNotFoundException
      */
     public void saveRequests(HashSet requests)throws SQLException, IOException, ClassNotFoundException {
         ObjectOutputStream out;
+        Request req;
         synchronized(DatabaseHandeler.class){
-            //insert the requests into database
-            DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
-            requests2=getRequests();
-            for (Iterator it = requests.iterator(); it.hasNext();) {
-                request=(Request) it.next();
-                requests2.add(request);
-             }
             Connection con;
-            con = DriverManager.getConnection(URL, "vinit76","vkb1234");
             Blob blob;
+            DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
+            con = DriverManager.getConnection(URL, "vinit76","vkb1234");
+            if (requestsDb.isEmpty()){
+                System.out.println("RequestDb Empty");
+                requestsDb=(HashSet) requests.clone();
+                fwdRequests=(HashSet) requestsDb.clone();
+            }else{
+                for (Iterator it = requests.iterator(); it.hasNext();) {
+                    req=(Request) it.next();
+                    if(!requestsDb.contains(req)){
+                        System.out.println(req+" is not an element of REQ_SET. Inserting now.....");
+                        requestsDb.add(req);
+                        fwdRequests.add(req);
+                    }else System.out.println(req+" is already an element of REQ_SET");
+                }
+            }
             blob = con.createBlob();
             out=new ObjectOutputStream(blob.setBinaryStream(1));
-            out.writeObject(requests2);
+            out.writeObject(requestsDb);
             out.flush();
+            //System.out.println(requestsDb);
             PreparedStatement psmt;
-            psmt=con.prepareStatement("INSERT INTO REQUESTS VALUES(?,?)");
+            psmt=con.prepareStatement("UPDATE SETS SET REQ_SET=? WHERE A_NUM=?");
             psmt.setObject(1,blob);
-            psmt.setInt(2,id+1);
+            psmt.setInt(2,a_num);
             psmt.executeUpdate();
             con.close();
         }
     }
     /**
-     *
-     * @return HashSet requests 
+     * 
      * @throws SQLException
      * @throws java.io.IOException
      * @throws java.lang.ClassNotFoundException
      */
-    protected HashSet getRequests()throws SQLException, IOException, ClassNotFoundException {
-        
+    protected void getRequests()throws SQLException, IOException, ClassNotFoundException {
         synchronized(DatabaseHandeler.class){
             DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
             ObjectInputStream in;
@@ -88,35 +94,17 @@ public class DatabaseHandeler extends HTRingPaxos{
             con = DriverManager.getConnection(URL, "vinit76","vkb1234");
             Blob blob;
             Statement stm=con.createStatement();
-            id=countRequests();
-            rs1=stm.executeQuery("SELECT * FROM REQUESTS WHERE ID="+id);
+            rs1=stm.executeQuery("SELECT * FROM SETS WHERE A_NUM="+a_num);
             while(rs1.next()){
-                blob=(Blob) rs1.getObject(1);
-                inn=blob.getBinaryStream();
-                in=new ObjectInputStream(inn);
-                requests=(HashSet) in.readObject();
+                blob=(Blob) rs1.getObject(2);
+                if (blob!=null){
+                    inn=blob.getBinaryStream();
+                    in=new ObjectInputStream(inn);
+                    requestsDb=(HashSet) in.readObject();
+                    fwdRequests=(HashSet) requestsDb.clone();
+                }
             }
             con.close();  
         }
-        return requests;
-    }
-    /**
-     *
-     * @return total number of available requests in database
-     * @throws SQLException
-     * 
-     */
-    public int countRequests() throws SQLException{
-        ResultSet rs2;
-        Statement stm;
-        Connection con;
-        con = DriverManager.getConnection(URL, "vinit76","vkb1234");
-        stm=con.createStatement();
-        rs2=stm.executeQuery("SELECT COUNT(*) FROM REQUESTS");
-        while(rs2.next()){
-            row_count=rs2.getInt(1);
-        }
-        con.close();
-        return row_count;
     }
 }
