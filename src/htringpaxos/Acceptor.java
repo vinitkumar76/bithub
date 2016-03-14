@@ -29,8 +29,7 @@ import java.util.Queue;
 public class Acceptor extends DatabaseHandeler implements Runnable{
     static int crnd,rnd,vrnd;
     static HashSet cval, vval;
-    Queue q=new LinkedList();
-    ReqId rId=new ReqId();
+    static Queue batch=new LinkedList();
     static int port;
     protected final static Object lock1=new Object();
     protected final static Object lock2=new Object();

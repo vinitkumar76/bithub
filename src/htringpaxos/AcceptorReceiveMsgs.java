@@ -22,6 +22,8 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  *
@@ -35,33 +37,41 @@ public class AcceptorReceiveMsgs extends Acceptor implements Runnable {
     @Override
     public void run(){
     try {
-                receiveRequests();
+                receive();
                 } catch (Exception ex) {
                 System.out.println("Exception:"+ex);
                 }
     }
-private void receiveRequests()throws Exception {
-        HashSet requests;
+private void receive()throws Exception {
+        HashSet requests = new HashSet();
+        Queue queue=new LinkedList();
+        Object obj; 
         Request req;
         ObjectInputStream in=new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
         while(true){
             try {
-                requests = (HashSet) in.readObject();
-               System.out.println("Requests received"); 
-                for (Iterator it = requests.iterator(); it.hasNext();) {
-                    req = (Request) it.next();
-                    if ((req.ip)==null) req.ip=s.getInetAddress();
-                    if ((req.port)==0) req.port=s.getPort();
-                    System.out.println(req);
-                }
-                //saving requests into database
-                synchronized(lock1){ 
-                    saveRequests(requests);
-                    lock1.notify();
-                }
-                synchronized(lock2){        
-                    lock2.notify();
-                }
+                obj = in.readObject();
+                if (obj.getClass()==requests.getClass()){
+                    requests=(HashSet) obj;
+                    System.out.println("Requests received"); 
+                    for (Iterator it = requests.iterator(); it.hasNext();) {
+                        req = (Request) it.next();
+                        if ((req.ip)==null) req.ip=s.getInetAddress();
+                        if ((req.port)==0) req.port=s.getPort();
+                        System.out.println(req);
+                    }
+                    //saving requests into database
+                    synchronized(lock1){ 
+                        saveRequests(requests);
+                        lock1.notify();
+                    }
+                    synchronized(lock2){        
+                        lock2.notify();
+                    }
+                }else if(obj.getClass()==queue.getClass()){
+                
+                    }
+                
             }catch(ClassNotFoundException | IOException| SQLException ex) {} 
         }
     }    

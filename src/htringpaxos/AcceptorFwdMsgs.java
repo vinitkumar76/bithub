@@ -15,8 +15,6 @@
  */
 package htringpaxos;
 
-import static htringpaxos.DatabaseHandeler.fwdRequests;
-import static htringpaxos.HTRingPaxos.a_num;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -76,11 +74,14 @@ public class AcceptorFwdMsgs extends Acceptor implements Runnable{
                     out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
                     out.writeObject(reqs);
                     out.flush();
+                    //preparing batch
                     for (Iterator it = fwdRequests.iterator(); it.hasNext();) {
                         Request r = (Request) it.next();
+                        ReqId rId=new ReqId();
                         rId.ip=r.ip;
                         rId.port=r.port;
                         rId.reqNum=r.reqNum;
+                        batch.add(rId);
                     }
                     fwdRequests.clear();
                     socket.close();
