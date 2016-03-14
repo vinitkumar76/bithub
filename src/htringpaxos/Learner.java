@@ -15,18 +15,23 @@
  */
 package htringpaxos;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author Vinitkumar
  */
-public class Learner implements Runnable {
-public void runLearner(){
-    
-}
+public class Learner implements Runnable{
     @Override
     public void run(){
-    
-}
-        
-      
+        try {
+            runLearner();
+        } catch (Exception ex) {
+            Logger.getLogger(Acceptor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    public void runLearner(){
+
+    }
 }

@@ -15,6 +15,7 @@
  */
 package htringpaxos;
 
+import static htringpaxos.HTRingPaxos.a_num;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,14 +23,25 @@ import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.HashSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author Vinitkumar
  */
-public class Proposer extends HTRingPaxos{
+public class Proposer extends HTRingPaxos implements Runnable{
     int i=0;
     ObjectOutputStream out=null;
     BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
+    @Override
+    public void run(){
+        try {
+            runProposer();
+        } catch (Exception ex) {
+            Logger.getLogger(Acceptor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
     public void runProposer() throws Exception {
         Socket s;
         int port=5000+a_num;

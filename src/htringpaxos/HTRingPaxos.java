@@ -54,7 +54,7 @@ public class HTRingPaxos extends Application {
             @Override
             public void handle(ActionEvent event) {
                 try {
-                    Thread t =new Thread(new AcceptorThread());
+                    Thread t =new Thread(new Acceptor());
                     t.setDaemon(true);
                     t.start();
                     btn1.setDisable(true);
@@ -69,7 +69,7 @@ public class HTRingPaxos extends Application {
                 public void handle(KeyEvent event) {
                     if(event.getCode()==KeyCode.ENTER){
                         try {
-                        Thread t =new Thread(new AcceptorThread());
+                        Thread t =new Thread(new Acceptor());
                         t.setDaemon(true);
                         t.start();
                         btn1.setDisable(true);
@@ -86,7 +86,7 @@ public class HTRingPaxos extends Application {
             @Override
             public void handle(ActionEvent event) {
                 try {
-                    Thread t= new Thread(new ProposerThread());
+                    Thread t= new Thread(new Proposer());
                     t.setDaemon(true);
                     t.start();
                     btn2.setDisable(true);
@@ -101,7 +101,7 @@ public class HTRingPaxos extends Application {
                 public void handle(KeyEvent event) {
                     if(event.getCode()==KeyCode.ENTER){
                         try {
-                            Thread t= new Thread(new ProposerThread());
+                            Thread t= new Thread(new Proposer());
                             t.setDaemon(true);
                             t.start();
                             btn2.setDisable(true);
@@ -118,7 +118,7 @@ public class HTRingPaxos extends Application {
             @Override
             public void handle(ActionEvent event) {
                 try {
-                    Thread t= new Thread(new LearnerThread());
+                    Thread t= new Thread(new Learner());
                     t.setDaemon(true);
                     t.start();
                     btn3.setDisable(true);
@@ -133,7 +133,7 @@ public class HTRingPaxos extends Application {
                 public void handle(KeyEvent event) {
                     if(event.getCode()==KeyCode.ENTER){
                         try {
-                            Thread t= new Thread(new LearnerThread());
+                            Thread t= new Thread(new Learner());
                             t.setDaemon(true);
                             t.start();
                             btn3.setDisable(true);

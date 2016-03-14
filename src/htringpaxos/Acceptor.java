@@ -15,39 +15,47 @@
  */
 package htringpaxos;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import static htringpaxos.HTRingPaxos.a_num;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.sql.SQLException;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
+
 /**
  *
  * @author Vinitkumar
  */
-    public class Acceptor extends DatabaseHandeler implements Runnable {
-    static boolean leader=false, fwdReq=true;
+public class Acceptor extends DatabaseHandeler implements Runnable{
     static int crnd,rnd,vrnd;
     static HashSet cval, vval;
-    Socket s;
-    int port;
-    private final static Object lock1=new Object();
-    private final static Object lock2=new Object();
-    Acceptor() {
-        port=5000+a_num;  
+    Queue q=new LinkedList();
+    ReqId rId=new ReqId();
+    static int port;
+    protected final static Object lock1=new Object();
+    protected final static Object lock2=new Object();
+    @Override
+    public void run(){
+        try {
+            synchronized (this){
+                while(a_num<0||a_total<0){
+                  wait(2000);  
+                }
+            }
+            port=5000+a_num;
+            fwdMsgs();
+            callCoordinator();
+            receiveMsgs();
+        } catch (Exception ex) {
+            System.out.println(ex);
+        }
     }
-    Acceptor(Socket s){
-        this.s = s;
+    public void fwdMsgs() throws Exception{
+        Thread t1=new Thread(new AcceptorFwdMsgs());
+        t1.setDaemon(true);
+        t1.start();
     }
-    /**
-     * @throws java.lang.Exception
-     */
-    public void runAcceptor() throws Exception {
-        port=5000+a_num;
+    public void receiveMsgs() throws Exception {
         ServerSocket ss = new ServerSocket (port);
         while(true) 
         { 
@@ -55,101 +63,14 @@ import java.util.Iterator;
             String stg=new String().concat(" PROPOSER"+" "+
             socket.getInetAddress() +":"+socket.getPort()+" IS CONNECTED ");
             System.out.println(stg);
-            Thread t=new Thread(new Acceptor(socket));
+            Thread t=new Thread(new AcceptorReceiveMsgs(socket));
             t.setDaemon(true);
             t.start();
-	}
-    }
-    /**
-     *
-     */
-    @Override
-    public void run(){
-        //forwarding requests to other acceptors
-        if(fwdReq==true){
-            try {
-                fwdReq=false;
-                getRequests();
-                forwardRequests();
-            } catch (SQLException | ClassNotFoundException | InterruptedException | IOException ex) {
-                System.out.println("Exception:"+ex);
-            }
-        }
-        //getting requests from proposers
-        else{
-            try {
-                receiveRequests();
-                } catch (Exception ex) {
-                System.out.println("Exception:"+ex);
-                }
-            }
-    }
-    private void forwardRequests() throws ClassNotFoundException, InterruptedException, IOException{
-        int nextPort,next;
-        Socket socket;
-        ObjectOutputStream out;
-        HashSet reqs;
-        while(true){
-            next=(a_num+1)%(a_total);
-            nextPort=5000+next;
-            reqs=(HashSet) fwdRequests.clone();
-            if (reqs.isEmpty()){
-                try {
-                    synchronized(lock1){
-                        lock1.wait();
-                    }
-                }catch (InterruptedException ex) {
-                }
-            }else{
-                while(true){
-                    try{
-                        if (nextPort!=port){
-                            socket = new Socket("localhost",nextPort);
-                            break;
-                        }else{
-                            synchronized(lock2){
-                                lock2.wait();
-                            }
-                        }
-                    }catch (IOException | InterruptedException ex){}
-                    next=(next+1)%(a_total);
-                    nextPort=5000+next;
-                }
-                try{
-                    out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-                    out.writeObject(reqs);
-                    out.flush();
-                    fwdRequests.clear();
-                    socket.close();
-                }catch(IOException e){
-                    socket.close();
-                }
-            }
         }
     }
-    private void receiveRequests()throws Exception {
-        HashSet requests;
-        Request req;
-        ObjectInputStream in=new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
-        while(true){
-            try {
-                requests = (HashSet) in.readObject();
-               System.out.println("Requests received"); 
-                for (Iterator it = requests.iterator(); it.hasNext();) {
-                    req = (Request) it.next();
-                    if ((req.ip)==null) req.ip=s.getInetAddress();
-                    if ((req.port)==0) req.port=s.getPort();
-                    System.out.println(req);
-                }
-                //saving requests into database
-                synchronized(lock1){ 
-                    saveRequests(requests);
-                    lock1.notify();
-                }
-                synchronized(lock2){        
-                    lock2.notify();
-                }
-            }catch(ClassNotFoundException | IOException| SQLException ex) {} 
-        }
+    public void callCoordinator()throws Exception{
+        Thread t2=new Thread(new Coordinator());
+        t2.setDaemon(true);
+        t2.start();
     }
 }
