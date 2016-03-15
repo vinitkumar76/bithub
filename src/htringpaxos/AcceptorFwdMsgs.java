@@ -81,7 +81,7 @@ public class AcceptorFwdMsgs extends Acceptor implements Runnable{
                         rId.ip=r.ip;
                         rId.port=r.port;
                         rId.reqNum=r.reqNum;
-                        batch.add(rId);
+                        cval.add(rId);
                     }
                     fwdRequests.clear();
                     socket.close();

@@ -18,7 +18,6 @@ package htringpaxos;
 import static htringpaxos.HTRingPaxos.a_num;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -27,9 +26,10 @@ import java.util.Queue;
  * @author Vinitkumar
  */
 public class Acceptor extends DatabaseHandeler implements Runnable{
-    static int crnd,rnd,vrnd;
-    static HashSet cval, vval;
-    static Queue batch=new LinkedList();
+    static int crnd,rnd,vrnd,i,sn,lsn=0;
+    static Queue cval=new LinkedList();
+    static Queue vval=new LinkedList();
+    static Queue queue=new LinkedList();
     static int port;
     protected final static Object lock1=new Object();
     protected final static Object lock2=new Object();
