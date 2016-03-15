@@ -15,16 +15,45 @@
  */
 package htringpaxos;
 
+import java.io.IOException;
+
 /**
  *
  * @author Vinitkumar
  */
 public class Leader extends Coordinator implements Runnable {
+    int count;
     Leader(){
     }
     @Override
     public void run() {
-    
+        if (leader==true){
+            count=0;
+            try {
+                sendPhase1aMsg(count);
+            } catch (ClassNotFoundException | InterruptedException | IOException ex) {}
+            while(true){
+                if(receivePhase1b){
+                    while(true){
+                        try {
+                            sendPhase2aMsg(count);
+                        } catch (ClassNotFoundException | InterruptedException | IOException ex) {}
+                    }
+                }
+                synchronized(this){
+                    try {
+                        wait(2000);
+                    } catch (InterruptedException e) {}
+                } 
+            }
+        }
     }
-    
+    void sendPhase1aMsg(int count) throws ClassNotFoundException, InterruptedException, IOException{
+        preparePhase1a(count);
+        send(phase1a);
+    }
+    void sendPhase2aMsg(int count) throws ClassNotFoundException, InterruptedException, IOException{
+       preparePhase2ab(count);
+       send(phase2ab);
+    }
 }

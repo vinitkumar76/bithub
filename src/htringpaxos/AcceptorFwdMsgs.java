@@ -74,7 +74,7 @@ public class AcceptorFwdMsgs extends Acceptor implements Runnable{
                     out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
                     out.writeObject(reqs);
                     out.flush();
-                    //preparing batch
+                    //preparing cval
                     for (Iterator it = fwdRequests.iterator(); it.hasNext();) {
                         Request r = (Request) it.next();
                         ReqId rId=new ReqId();

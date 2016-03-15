@@ -22,8 +22,6 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
 
 /**
  *
@@ -44,7 +42,6 @@ public class AcceptorReceiveMsgs extends Acceptor implements Runnable {
     }
 private void receive()throws Exception {
         HashSet requests = new HashSet();
-        Queue queue=new LinkedList();
         Object obj; 
         Request req;
         ObjectInputStream in=new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
@@ -69,9 +66,8 @@ private void receive()throws Exception {
                         lock2.notify();
                     }
                 }else if(obj.getClass()==queue.getClass()){
-                
+                        queue.add(obj);
                     }
-                
             }catch(ClassNotFoundException | IOException| SQLException ex) {} 
         }
     }    
