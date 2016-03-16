@@ -26,9 +26,7 @@ import java.util.Queue;
  * @author Vinitkumar
  */
 public class Acceptor extends DatabaseHandeler implements Runnable{
-    static int crnd,rnd,vrnd,i,sn,lsn=0;
-    static Queue cval=new LinkedList();
-    static Queue vval=new LinkedList();
+    static Queue batch=new LinkedList();
     static Queue queue=new LinkedList();
     static int port;
     protected final static Object lock1=new Object();

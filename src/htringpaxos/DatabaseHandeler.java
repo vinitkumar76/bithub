@@ -107,4 +107,20 @@ public class DatabaseHandeler extends HTRingPaxos{
             con.close();  
         }
     }
+    protected int getI()throws SQLException, IOException, ClassNotFoundException {
+       int I = 0;
+        synchronized(DatabaseHandeler.class){
+            DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
+            ResultSet rs1;
+            Connection con;
+            con = DriverManager.getConnection(URL, "vinit76","vkb1234");
+            Statement stm=con.createStatement();
+            rs1=stm.executeQuery("SELECT MAX(I) FROM PAXOS_VARIABLES");
+            while(rs1.next()){
+                I= rs1.getInt(1);
+            }
+            con.close();  
+        }
+       return I;
+    }
 }
