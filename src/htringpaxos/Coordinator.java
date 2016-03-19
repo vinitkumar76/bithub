@@ -15,13 +15,13 @@
  */
 package htringpaxos;
 
-import static htringpaxos.Acceptor.port;
-import static htringpaxos.HTRingPaxos.a_num;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -30,100 +30,111 @@ import java.util.Queue;
  * @author Vinitkumar
  */
 public class Coordinator extends Acceptor implements Runnable{
-    static int i, lsn=0,count=0;
-    static boolean leader=false;
-    static boolean receivedPhase1b=false;
-    int crnd,rnd,vrnd,sn,j;
-    private String str;
-    Queue cval=new LinkedList();
-    Queue vval=new LinkedList();
-    Queue receiveQ=new LinkedList();
-    Queue sendQ=new LinkedList();
-    
+    protected static int i, lsn=0;
+    protected static HashSet iSet=new HashSet();
+    protected static ArrayList cList=new ArrayList();
+    protected static boolean receivedPhase1b=false;
+    protected boolean decided=false;
+    protected String str;
+    protected boolean instance;
+    private Queue queue=new LinkedList();
+    protected Queue Q=new LinkedList();
+    protected int crnd,rnd,vrnd,sn,j;
+    protected Queue cval=new LinkedList();
+    protected Queue vval=new LinkedList();
+    protected Queue rQ=new LinkedList();
+    protected Queue sQ=new LinkedList();
     Coordinator(){
+        instance=false;
+        if(a_num==0){
+            leader=true;
+        }
     }
     Coordinator(int j){
+        instance=true;
         this.j=j;
+        rnd=0;
+        vrnd=0;
     }
     @Override
     public void run(){
-        if (a_num==0){
-            leader=true;
+        if (instance==true){
+            while(!decided){
+                queue=(Queue) Q.remove();
+                str=(String) queue.remove();
+                if(null!=str)switch (str) {
+                    case "1a":
+                        crnd=(int) queue.remove();
+                        if (rnd>crnd){
+                            sQ.add("denial");
+                        }else{
+                            sQ.add("1ab");
+                            sQ.add(j);
+                            sQ.add(rnd);
+                            sQ.add(vrnd);
+                            sQ.add(vval);
+                            sQ.add(sn);
+                        }
+                        break;
+                    case "1ab":
+                        rnd=(int) queue.remove();
+                        crnd=(int) queue.remove();
+                        vval=(Queue) queue.remove();
+                        sn=(int) queue.remove();
+                        break;
+                    case "2a":
+                        rnd=(int) queue.remove();
+                        crnd=(int) queue.remove();
+                        vval=(Queue) queue.remove();
+                        sn=(int) queue.remove();
+                        break;
+                    case "2ab":
+                        rnd=(int) queue.remove();
+                        crnd=(int) queue.remove();
+                        vval=(Queue) queue.remove();
+                        sn=(int) queue.remove();
+                        break;
+                    case "denial":
+                        leader=false;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }else if(leader){
             crnd=lsn=1;
             try {
                 i=getI();
-                preparePhase1a(count);
-                save(sendQ);
-                send(sendQ);
-                sendQ.clear();
-            } catch (ClassNotFoundException | InterruptedException | IOException|SQLException e) {}
-        }
-        while(true){
-            try{
-                if(leader&&receivedPhase1b){ 
-                    
-                    if(cval.size()>=10){
+                sQ.add(++i);
+                sQ.add("1a");
+                sQ.add(crnd);
+                save(sQ);
+                send(sQ);
+                sQ.clear();
+            }catch(ClassNotFoundException | InterruptedException | IOException|SQLException e){}
+            while(true){
+                try{
+                    if(leader&&receivedPhase1b&&batch.size()>=10){
                         ++i;
-                        Thread t=new Thread(new Coordinator(i));
+                        iSet.add(i);
+                        Coordinator c=new Coordinator(i);
+                        cList.add(i, c);
+                        c.cval.addAll(batch);
+                        batch.clear();
+                        c.sQ.add(j);
+                        c.sQ.add("2a");
+                        c.sQ.add(crnd);
+                        c.sQ.add(cval);
+                        save(c.sQ);
+                        send(c.sQ);
+                        c.sQ.clear();
+                        Thread t=new Thread(c);
                         t.setDaemon(true);
                         t.start();
-                        preparePhase2ab(count);
-                        save(sendQ);
-                        send(sendQ);
-                        sendQ.clear();
-                        cval.clear();
                     }
-                }
-                if(queue.size()>0){
-                    receiveQ=(Queue) queue.remove();
-                    str=(String) receiveQ.remove();
-                    if(null!=str)switch (str) {
-                        case "1a":
-                            i=(int) receiveQ.remove();
-                            crnd=(int) receiveQ.remove();
-                            sn=(int) receiveQ.remove();
-                            break;
-                        case "1ab":
-                            i=(int) receiveQ.remove();
-                            rnd=(int) receiveQ.remove();
-                            crnd=(int) receiveQ.remove();
-                            vval=(Queue) receiveQ.remove();
-                            sn=(int) receiveQ.remove();
-                            break;
-                        case "2ab":
-                            i=(int) receiveQ.remove();
-                            rnd=(int) receiveQ.remove();
-                            crnd=(int) receiveQ.remove();
-                            vval=(Queue) receiveQ.remove();
-                            sn=(int) receiveQ.remove();
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }catch(ClassNotFoundException | InterruptedException | IOException e){}    
+                }catch(ClassNotFoundException | InterruptedException | IOException e){}
+            }
         }
-    }
-    void preparePhase1a(int sn){
-        sendQ.add("1a");
-        sendQ.add(j);
-        sendQ.add(crnd);
-        sendQ.add(sn);
-    }
-    void preparePhase1ab(){
-        sendQ.add("1ab");
-        sendQ.add(j);
-        sendQ.add(rnd);
-        sendQ.add(vrnd);
-        sendQ.add(vval);
-        sendQ.add(sn);
-    }
-    void preparePhase2ab(int sn){
-        sendQ.add("2ab");
-        sendQ.add(j);
-        sendQ.add(crnd);
-        sendQ.add(cval);
-        sendQ.add(sn);
     }
     void send(Queue q)throws ClassNotFoundException, InterruptedException, IOException{
         int nextPort,next;

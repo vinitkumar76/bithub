@@ -15,7 +15,6 @@
  */
 package htringpaxos;
 
-import static htringpaxos.HTRingPaxos.a_num;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
@@ -26,11 +25,12 @@ import java.util.Queue;
  * @author Vinitkumar
  */
 public class Acceptor extends DatabaseHandeler implements Runnable{
-    static Queue batch=new LinkedList();
-    static Queue queue=new LinkedList();
-    static int port;
+    protected static boolean leader=false;
+    protected static Queue batch=new LinkedList();
+    protected static int port;
     protected final static Object lock1=new Object();
     protected final static Object lock2=new Object();
+    protected final static Object lock3=new Object();
     @Override
     public void run(){
         try {
@@ -40,8 +40,8 @@ public class Acceptor extends DatabaseHandeler implements Runnable{
                 }
             }
             port=5000+a_num;
-            fwdMsgs();
             callCoordinator();
+            fwdMsgs();
             receiveMsgs();
         } catch (Exception ex) {
             System.out.println(ex);

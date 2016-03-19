@@ -22,7 +22,7 @@ import java.util.logging.Logger;
  *
  * @author Vinitkumar
  */
-public class Learner implements Runnable{
+final public class Learner implements Runnable{
     @Override
     public void run(){
         try {

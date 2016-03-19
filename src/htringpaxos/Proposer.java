@@ -30,7 +30,7 @@ import java.util.logging.Logger;
  *
  * @author Vinitkumar
  */
-public class Proposer extends HTRingPaxos implements Runnable{
+final public class Proposer extends HTRingPaxos implements Runnable{
     int i=0;
     ObjectOutputStream out=null;
     BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));

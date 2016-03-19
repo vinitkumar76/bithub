@@ -21,7 +21,7 @@ import java.net.InetAddress;
  *
  * @author Vinitkumar
  */
-public class ReqId {
+final public class ReqId {
     ReqId(){
     }
     int reqNum,port;

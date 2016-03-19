@@ -27,7 +27,7 @@ import java.util.Iterator;
  *
  * @author Vinitkumar
  */
-public class AcceptorFwdMsgs extends Acceptor implements Runnable{
+final public class AcceptorFwdMsgs extends Acceptor implements Runnable{
     AcceptorFwdMsgs() {
     }
     @Override
@@ -74,14 +74,16 @@ public class AcceptorFwdMsgs extends Acceptor implements Runnable{
                     out= new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
                     out.writeObject(reqs);
                     out.flush();
-                    //preparing cval
-                    for (Iterator it = fwdRequests.iterator(); it.hasNext();) {
-                        Request r = (Request) it.next();
-                        ReqId rId=new ReqId();
-                        rId.ip=r.ip;
-                        rId.port=r.port;
-                        rId.reqNum=r.reqNum;
-                        batch.add(rId);
+                    //preparing batch(in case of leader election batch preparation will require additional logic)
+                    if(leader==true){
+                        for (Iterator it = fwdRequests.iterator(); it.hasNext();) {
+                            Request r = (Request) it.next();
+                            ReqId rId=new ReqId();
+                            rId.ip=r.ip;
+                            rId.port=r.port;
+                            rId.reqNum=r.reqNum;
+                            batch.add(rId);
+                        }
                     }
                     fwdRequests.clear();
                     socket.close();

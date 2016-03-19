@@ -22,28 +22,33 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  *
  * @author Vinitkumar
  */
-public class AcceptorReceiveMsgs extends Acceptor implements Runnable {
+final public class AcceptorReceiveMsgs extends Coordinator implements Runnable {
     Socket s;
+    private int k;
+    private Queue q=new LinkedList();
     AcceptorReceiveMsgs(Socket s){
         this.s = s;
     }
     @Override
     public void run(){
     try {
-                receive();
-                } catch (Exception ex) {
-                System.out.println("Exception:"+ex);
-                }
+        receive();
+        } catch (Exception ex) {
+        System.out.println("Exception:"+ex);
+        }
     }
 private void receive()throws Exception {
         HashSet requests = new HashSet();
         Object obj; 
         Request req;
+        Coordinator c;
         ObjectInputStream in=new ObjectInputStream(new BufferedInputStream(s.getInputStream()));
         while(true){
             try {
@@ -65,9 +70,22 @@ private void receive()throws Exception {
                     synchronized(lock2){        
                         lock2.notify();
                     }
-                }else if(obj.getClass()==queue.getClass()){
-                        queue.add(obj);
+                }else if(obj.getClass()==q.getClass()){
+                    q =(Queue) obj;
+                    k=(int) q.remove();
+                    if(!iSet.contains(k)){
+                        c = new Coordinator(k);
+                        cList.add(k, c);
+                        iSet.add(k);
+                        c.Q.add(q);
+                        Thread t=new Thread(c);
+                        t.setDaemon(true);
+                        t.start();
+                    }else{
+                        c=(Coordinator) cList.get(k);
+                        c.Q.add(q);
                     }
+                }
             }catch(ClassNotFoundException | IOException| SQLException ex) {} 
         }
     }    

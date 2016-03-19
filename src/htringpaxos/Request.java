@@ -22,7 +22,7 @@ import java.util.Objects;
  *
  * @author Vinitkumar
  */
-public class Request implements Serializable{
+final public class Request implements Serializable{
     int reqNum,port;
     String str;
     InetAddress ip;
@@ -73,10 +73,7 @@ public class Request implements Serializable{
         if (!Objects.equals(this.str, other.str)) {
             return false;
         }
-        if (!Objects.equals(this.ip, other.ip)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.ip, other.ip);
     }
     @Override
     public String toString(){
