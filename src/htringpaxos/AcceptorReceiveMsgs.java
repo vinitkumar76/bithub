@@ -23,16 +23,15 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Queue;
 
 /**
  *
  * @author Vinitkumar
  */
 final public class AcceptorReceiveMsgs extends Coordinator implements Runnable {
-    Socket s;
-    private int k;
-    private Queue q=new LinkedList();
+    private Socket s;
+    private int i;
+    private LinkedList list=new LinkedList();
     AcceptorReceiveMsgs(Socket s){
         this.s = s;
     }
@@ -70,21 +69,21 @@ private void receive()throws Exception {
                     synchronized(lock2){        
                         lock2.notify();
                     }
-                }else if(obj.getClass()==q.getClass()){
-                    q =(Queue) obj;
-                    k=(int) q.remove();
-                    if(!iSet.contains(k)){
-                        c = new Coordinator(k);
-                        cList.add(k, c);
-                        iSet.add(k);
-                        c.Q.add(q);
+                }else if(obj.getClass()==list.getClass()){
+                    list =(LinkedList) obj;
+                    i=(int) list.remove();
+                    if(!iSet.contains(i)&&!dSet.contains(i)){
+                        c = new Coordinator(i);
+                        cList.add(i, c);
+                        iSet.add(i);
+                        c.Q.add(list);
                         Thread t=new Thread(c);
                         t.setDaemon(true);
                         t.start();
-                    }else{
-                        c=(Coordinator) cList.get(k);
-                        c.Q.add(q);
-                    }
+                    }else if(!dSet.contains(i)){
+                        c=(Coordinator) cList.get(i);
+                        c.Q.add(list);}
+                    list.clear();
                 }
             }catch(ClassNotFoundException | IOException| SQLException ex) {} 
         }

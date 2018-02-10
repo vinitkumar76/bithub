@@ -73,7 +73,10 @@ final public class Request implements Serializable{
         if (!Objects.equals(this.str, other.str)) {
             return false;
         }
-        return Objects.equals(this.ip, other.ip);
+        if (!Objects.equals(this.ip, other.ip)) {
+            return false;
+        }
+        return true;
     }
     @Override
     public String toString(){

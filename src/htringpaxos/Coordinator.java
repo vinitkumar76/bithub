@@ -23,30 +23,29 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Queue;
 
 /**
  *
  * @author Vinitkumar
  */
 public class Coordinator extends Acceptor implements Runnable{
-    protected static int i, lsn=0;
+    private static int i, lsn;
     protected static HashSet iSet=new HashSet();
+    protected static HashSet dSet=new HashSet();
     protected static ArrayList cList=new ArrayList();
-    protected static boolean receivedPhase1b=false;
-    protected boolean decided=false;
-    protected String str;
-    protected boolean instance;
-    private Queue queue=new LinkedList();
-    protected Queue Q=new LinkedList();
-    protected int crnd,rnd,vrnd,sn,j;
-    protected Queue cval=new LinkedList();
-    protected Queue vval=new LinkedList();
-    protected Queue rQ=new LinkedList();
-    protected Queue sQ=new LinkedList();
+    private static boolean phase1;
+    private boolean instance;
+    private boolean decided=false;
+    private String str;
+    private LinkedList list=new LinkedList();
+    protected LinkedList Q=new LinkedList();
+    private int crnd,rnd,vrnd,sn,j;
+    private LinkedList cval=new LinkedList();
+    private LinkedList vval=new LinkedList();
+    private LinkedList sQ=new LinkedList();
     Coordinator(){
         instance=false;
-        if(a_num==0){
+        if(a_num==0){//leader election protocol will change this logic
             leader=true;
         }
     }
@@ -55,88 +54,124 @@ public class Coordinator extends Acceptor implements Runnable{
         this.j=j;
         rnd=0;
         vrnd=0;
+        crnd=lsn;
     }
     @Override
     public void run(){
+        int rec_crnd;
         if (instance==true){
             while(!decided){
-                queue=(Queue) Q.remove();
-                str=(String) queue.remove();
+                list=(LinkedList) Q.remove();
+                str=(String) list.remove();
                 if(null!=str)switch (str) {
                     case "1a":
-                        crnd=(int) queue.remove();
-                        if (rnd>crnd){
+                        rec_crnd=(int) list.remove();
+                        if (rnd>rec_crnd){
                             sQ.add("denial");
-                        }else{
-                            sQ.add("1ab");
+                            sQ.add(rec_crnd);
+                            try {
+                                save(sQ);
+                                send(sQ);
+                                sQ.clear();
+                            } catch (ClassNotFoundException | InterruptedException | IOException ex) {}
+                        }else if (rnd<rec_crnd){
+                            rnd=rec_crnd;
                             sQ.add(j);
-                            sQ.add(rnd);
+                            sQ.add("1ab");
+                            sQ.add(rec_crnd);
                             sQ.add(vrnd);
                             sQ.add(vval);
-                            sQ.add(sn);
+                            sQ.add(2);
+                            try {
+                                save(sQ);
+                                send(sQ);
+                                sQ.clear();
+                            } catch (ClassNotFoundException | InterruptedException | IOException ex) {}
                         }
                         break;
+                       
                     case "1ab":
-                        rnd=(int) queue.remove();
-                        crnd=(int) queue.remove();
-                        vval=(Queue) queue.remove();
-                        sn=(int) queue.remove();
+                        rec_crnd=(int) list.remove();
+                        crnd=(int) list.remove();
+                        vval=(LinkedList) list.remove();
+                        sn=(int) list.remove();
                         break;
                     case "2a":
-                        rnd=(int) queue.remove();
-                        crnd=(int) queue.remove();
-                        vval=(Queue) queue.remove();
-                        sn=(int) queue.remove();
+                        rnd=(int) list.remove();
+                        crnd=(int) list.remove();
+                        vval=(LinkedList) list.remove();
+                        sn=(int) list.remove();
                         break;
                     case "2ab":
-                        rnd=(int) queue.remove();
-                        crnd=(int) queue.remove();
-                        vval=(Queue) queue.remove();
-                        sn=(int) queue.remove();
+                        rnd=(int) list.remove();
+                        crnd=(int) list.remove();
+                        vval=(LinkedList) list.remove();
+                        sn=(int) list.remove();
                         break;
                     case "denial":
-                        leader=false;
+                        rec_crnd=(int) list.remove();
+                        if(rec_crnd==lsn)
+                            leader=false;
                         break;
                     default:
                         break;
                 }
             }
-        }else if(leader){
-            crnd=lsn=1;
-            try {
+        }else if(leader){//from 0 to i th instance logic not included till now.......
+            lsn=1; //Leader election protocol will calculate this value....... 
+            phase1=true;
+            try {//Preparing and Sending phase 1a Msg......
                 i=getI();
-                sQ.add(++i);
-                sQ.add("1a");
-                sQ.add(crnd);
-                save(sQ);
-                send(sQ);
-                sQ.clear();
+                getDecided();
+                for(int count=0;count<=i+1;count++){
+                    if(!dSet.contains(count))
+                        iSet.add(count);}
+                Coordinator c=new Coordinator(i+1);
+                cList.add(i+1, c);
+                c.sQ.add(i+1);
+                c.sQ.add("1a");
+                c.sQ.add(c.crnd);
+                save(c.sQ);
+                iSet.add(i+1);
+                while(phase1){
+                    LinkedList q2=new LinkedList(c.sQ);
+                    send(q2);
+                    synchronized(this){
+                        try {
+                            wait(2000);
+                        } catch (InterruptedException ex) {}
+                    }
+                }
+                c.sQ.clear();
             }catch(ClassNotFoundException | InterruptedException | IOException|SQLException e){}
-            while(true){
-                try{
-                    if(leader&&receivedPhase1b&&batch.size()>=10){
-                        ++i;
-                        iSet.add(i);
-                        Coordinator c=new Coordinator(i);
+            while(leader){
+                try{//Preparing and Sending phase 2a Msg......
+                    if(batch.size()>=10){
+                        Coordinator c=new Coordinator(++i);
                         cList.add(i, c);
+                        iSet.add(i);
+                        c.crnd=lsn;
                         c.cval.addAll(batch);
                         batch.clear();
-                        c.sQ.add(j);
+                        c.sQ.add(c.j);
                         c.sQ.add("2a");
-                        c.sQ.add(crnd);
-                        c.sQ.add(cval);
+                        c.sQ.add(c.crnd);
+                        c.sQ.add(c.cval);
                         save(c.sQ);
                         send(c.sQ);
                         c.sQ.clear();
                         Thread t=new Thread(c);
                         t.setDaemon(true);
                         t.start();
+                        synchronized(this){
+                        wait(2000);
+                        }
                     }
                 }catch(ClassNotFoundException | InterruptedException | IOException e){}
             }
         }
     }
-    void send(Queue q)throws ClassNotFoundException, InterruptedException, IOException{
+    void send(LinkedList q)throws ClassNotFoundException, InterruptedException, IOException{
         int nextPort,next;
         Socket socket;
         ObjectOutputStream out;
@@ -159,7 +194,9 @@ public class Coordinator extends Acceptor implements Runnable{
             socket.close();
         }catch(IOException e){}
     }
-    void save(Queue q)throws ClassNotFoundException, InterruptedException, IOException{
+    void save(LinkedList q)throws ClassNotFoundException, InterruptedException, IOException{
         
+    }
+    private void getDecided() {
     }
 }

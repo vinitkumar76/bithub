@@ -18,7 +18,6 @@ package htringpaxos;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
-import java.util.Queue;
 
 /**
  *
@@ -26,7 +25,7 @@ import java.util.Queue;
  */
 public class Acceptor extends DatabaseHandeler implements Runnable{
     protected static boolean leader=false;
-    protected static Queue batch=new LinkedList();
+    protected static LinkedList batch=new LinkedList();
     protected static int port;
     protected final static Object lock1=new Object();
     protected final static Object lock2=new Object();
@@ -40,7 +39,7 @@ public class Acceptor extends DatabaseHandeler implements Runnable{
                 }
             }
             port=5000+a_num;
-            callCoordinator();
+            //callCoordinator();
             fwdMsgs();
             receiveMsgs();
         } catch (Exception ex) {
@@ -57,9 +56,6 @@ public class Acceptor extends DatabaseHandeler implements Runnable{
         while(true) 
         { 
             Socket socket = ss.accept();
-            String stg=new String().concat(" PROPOSER"+" "+
-            socket.getInetAddress() +":"+socket.getPort()+" IS CONNECTED ");
-            System.out.println(stg);
             Thread t=new Thread(new AcceptorReceiveMsgs(socket));
             t.setDaemon(true);
             t.start();
